@@ -1,0 +1,205 @@
+{
+  "slug": "futurepreneur-2025-26",
+  "name": "FUTUREPRENEUR 2025-26",
+  "description": "Port Blair, Andaman & Nicobar Islands — with EDII-TN",
+  "order": 20,
+  "columns": [
+    {
+      "key": "name",
+      "label": "Name",
+      "aliases": [
+        "full name",
+        "participant name",
+        "student name",
+        "staff name",
+        "faculty name",
+        "participant"
+      ]
+    },
+    {
+      "key": "department",
+      "label": "Department / Institution",
+      "aliases": [
+        "from",
+        "dept",
+        "department",
+        "institution",
+        "college",
+        "organisation",
+        "organization"
+      ]
+    },
+    {
+      "key": "position",
+      "label": "Position",
+      "aliases": [
+        "place",
+        "prize",
+        "rank",
+        "secured"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "winner-19-20",
+      "label": "Winner — 19 & 20 Nov",
+      "image": "winner-19-20.png",
+      "width": 2000,
+      "height": 1414,
+      "fields": [
+        {
+          "key": "name",
+          "x": 696,
+          "y": 580,
+          "width": 523,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "title"
+        },
+        {
+          "key": "department",
+          "x": 1333,
+          "y": 580,
+          "width": 505,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "none"
+        },
+        {
+          "key": "position",
+          "x": 460,
+          "y": 646,
+          "width": 244,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "none"
+        }
+      ]
+    },
+    {
+      "id": "participation-19-20",
+      "label": "Participation — 19 & 20 Nov",
+      "image": "participation-19-20.png",
+      "width": 2000,
+      "height": 1414,
+      "fields": [
+        {
+          "key": "name",
+          "x": 646,
+          "y": 575,
+          "width": 400,
+          "fontFamily": "Montserrat",
+          "fontSize": 28,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "title"
+        },
+        {
+          "key": "department",
+          "x": 1153,
+          "y": 575,
+          "width": 418,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": 28
+        }
+      ]
+    },
+    {
+      "id": "winner-21",
+      "label": "Winner — 21 Nov",
+      "image": "winner-21.png",
+      "width": 2000,
+      "height": 1414,
+      "fields": [
+        {
+          "key": "name",
+          "x": 696,
+          "y": 580,
+          "width": 523,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "title"
+        },
+        {
+          "key": "department",
+          "x": 1333,
+          "y": 580,
+          "width": 505,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "none"
+        },
+        {
+          "key": "position",
+          "x": 460,
+          "y": 646,
+          "width": 244,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "none"
+        }
+      ]
+    },
+    {
+      "id": "participation-21",
+      "label": "Participation — 21 Nov",
+      "image": "participation-21.png",
+      "width": 2000,
+      "height": 1414,
+      "fields": [
+        {
+          "key": "name",
+          "x": 645,
+          "y": 575,
+          "width": 401,
+          "fontFamily": "Montserrat",
+          "fontSize": 28,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": "title"
+        },
+        {
+          "key": "department",
+          "x": 1151,
+          "y": 575,
+          "width": 418,
+          "fontFamily": "Montserrat",
+          "fontSize": 30,
+          "fontWeight": 700,
+          "color": "#111111",
+          "align": "center",
+          "transform": 28
+        }
+      ]
+    }
+  ],
+  "email": {
+    "subject": "Your {Event} certificate",
+    "body": "Dear {Name},\n\nGreetings from Rajalakshmi Institute of Technology.\n\nPlease find attached your {Type} certificate for {Event}.\n\nThank you for being part of it.\n\nRegards,\nRajalakshmi Institute of Technology, Chennai"
+  }
+}
