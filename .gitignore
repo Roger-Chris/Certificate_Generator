@@ -14,3 +14,5 @@ next-env.d.ts
 /FUTUREPRENEUR 25 26/
 /Gameathon Certificate/
 /IP Rights/
+.art-debug-*
+/.data/

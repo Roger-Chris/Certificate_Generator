@@ -40,3 +40,10 @@ body {
 @utility label {
   @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500;
 }
+
+/* transparency checkerboard behind logos/signatures in pickers */
+.checker {
+  background-color: #fff;
+  background-image: conic-gradient(#eef0f4 25%, transparent 0 50%, #eef0f4 0 75%, transparent 0);
+  background-size: 14px 14px;
+}

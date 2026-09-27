@@ -1,0 +1,35 @@
+/** Artwork cut from the original Canva certificates (scripts/extract_art.py). Sizes are the files' pixel sizes. */
+export const BRAND_ASSETS: { src: string; name: string; w: number; h: number; group: string }[] = [
+  { src: "/assets/brand/rit-logo.png", name: "RIT logo", w: 382, h: 83, group: "Logos" },
+  { src: "/assets/brand/rit-logo-tagline.png", name: "RIT logo + tagline", w: 355, h: 100, group: "Logos" },
+  { src: "/assets/brand/nba.png", name: "NBA", w: 110, h: 83, group: "Logos" },
+  { src: "/assets/brand/naac.png", name: "NAAC A++", w: 128, h: 91, group: "Logos" },
+  { src: "/assets/brand/iic.png", name: "Institution's Innovation Council", w: 182, h: 88, group: "Logos" },
+  { src: "/assets/brand/sdg-wheel.png", name: "SDG wheel", w: 100, h: 101, group: "Logos" },
+  { src: "/assets/brand/tn-emblem.png", name: "Govt. of Tamil Nadu", w: 113, h: 122, group: "Logos" },
+  { src: "/assets/brand/edii-tn.png", name: "EDII-TN", w: 150, h: 144, group: "Logos" },
+  { src: "/assets/brand/swadeshi-shodh-sansthan.png", name: "Swadeshi Shodh Sansthan", w: 99, h: 99, group: "Logos" },
+  { src: "/assets/brand/gameathon-logo.png", name: "Gameathon", w: 483, h: 137, group: "Logos" },
+  { src: "/assets/brand/revolution-games.png", name: "Revolution Games", w: 301, h: 124, group: "Logos" },
+  { src: "/assets/brand/8queens.png", name: "8Queens", w: 203, h: 91, group: "Logos" },
+  { src: "/assets/brand/inspire.png", name: "Inspire Softech", w: 204, h: 91, group: "Logos" },
+  { src: "/assets/brand/distinct.png", name: "Distinct Systems", w: 203, h: 100, group: "Logos" },
+  { src: "/assets/brand/freshathon-2-title.png", name: "Freshathon 2.0 title", w: 466, h: 79, group: "Logos" },
+  { src: "/assets/brand/signature-maheswari.png", name: "Dr. R. Maheswari (Principal)", w: 191, h: 114, group: "Signatures" },
+  { src: "/assets/brand/signature-manimaran.png", name: "Dr. B. Manimaran", w: 191, h: 117, group: "Signatures" },
+  { src: "/assets/brand/signature-shanmuga.png", name: "Mr. U. Shanmuga Mariappan", w: 301, h: 60, group: "Signatures" },
+  { src: "/assets/brand/signature-sathiya.png", name: "Mrs. B. Sathiya", w: 234, h: 94, group: "Signatures" },
+  { src: "/assets/brand/signature-vidhushavarshini.png", name: "Dr. S. Vidhushavarshini", w: 233, h: 89, group: "Signatures" },
+  { src: "/assets/brand/gold-medal.png", name: "Gold medal", w: 117, h: 147, group: "Seals" },
+  { src: "/assets/brand/ribbon-seal.png", name: "Ribbon seal", w: 311, h: 374, group: "Seals" },
+];
+
+export const BACKGROUNDS: { src: string; name: string; w: number; h: number }[] = [
+  { src: "/assets/backgrounds/ip-day.jpg", name: "Cream & navy curtains", w: 2000, h: 1414 },
+  { src: "/assets/backgrounds/freshathon-blue.jpg", name: "Blue frame", w: 2000, h: 1414 },
+  { src: "/assets/backgrounds/freshathon-gold.jpg", name: "Gold & navy chevrons", w: 2000, h: 1414 },
+  { src: "/assets/backgrounds/designathon.jpg", name: "Blue frame (16:9)", w: 1920, h: 1080 },
+  { src: "/assets/backgrounds/gameathon.jpg", name: "Tech purple", w: 2000, h: 1414 },
+  { src: "/assets/backgrounds/futurepreneur.jpg", name: "Gold frame & navy", w: 2000, h: 1414 },
+  { src: "/assets/backgrounds/japan.jpg", name: "Cherry blossom", w: 2000, h: 1414 },
+];

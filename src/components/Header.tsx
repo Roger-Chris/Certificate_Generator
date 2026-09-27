@@ -27,8 +27,8 @@ export default function Header({ crumbs = [] }: { crumbs?: { href?: string; labe
           </span>
         ))}
         <nav className="ml-auto flex items-center gap-4 text-sm">
-          <Link href="/editor" className="text-navy-100 hover:text-white">
-            Template editor
+          <Link href="/" className="text-navy-100 hover:text-white">
+            Designs
           </Link>
           <button onClick={logout} className="text-navy-100 hover:text-white">
             Sign out

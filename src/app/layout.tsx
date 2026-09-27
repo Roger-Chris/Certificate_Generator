@@ -14,9 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link rel="stylesheet" href={fontHref("Inter:wght@400;500;600;700")} />
+        <link rel="stylesheet" href={fontHref("Inter:wght@400;500;600;700")} crossOrigin="anonymous" />
         {FONTS.map((f) => (
-          <link key={f.family} rel="stylesheet" href={fontHref(f.spec)} />
+          <link key={f.family} rel="stylesheet" href={fontHref(f.spec)} crossOrigin="anonymous" />
         ))}
       </head>
       <body className="min-h-screen antialiased">{children}</body>

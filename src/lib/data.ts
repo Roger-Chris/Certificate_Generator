@@ -1,37 +1,50 @@
-import type { Column, EventTemplate, Row, Variant } from "./types";
+import { normKey } from "./design";
 
-export const EMAIL_KEY = "email";
-export const VARIANT_KEY = "_variant";
+/** Spreadsheet / table helpers for the "create certificates" page. */
+
+export const EMAIL_KEY = "__email";
+export const DESIGN_KEY = "__design";
 export const IGNORE = "";
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+export type Row = Record<string, string> & { _id: string; _design: string };
 
-export const newRow = (variant: string, values: Record<string, string> = {}): Row =>
-  ({ ...values, _id: crypto.randomUUID(), _variant: variant }) as Row;
+export const newRow = (design: string, values: Record<string, string> = {}): Row =>
+  ({ ...values, _id: crypto.randomUUID(), _design: design }) as Row;
 
-/** Guess which event column each spreadsheet header belongs to. */
-export function autoMap(headers: string[], ev: EventTemplate): string[] {
-  const used = new Set<string>();
-  const targets: { key: string; names: string[] }[] = [
-    { key: EMAIL_KEY, names: ["email", "e-mail", "mail", "email id", "mail id", "email address"] },
-    { key: VARIANT_KEY, names: ["type", "certificate", "certificate type", "variant", "category", "design"] },
-    ...ev.columns.map((c) => ({ key: c.key, names: [c.key, c.label, ...(c.aliases ?? [])] })),
+/** Other spreadsheet headings people commonly use for each field. */
+const ALIASES: Record<string, string[]> = {
+  name: ["full name", "participant name", "participant", "student name", "staff name", "faculty name", "name of the participant", "candidate name"],
+  department: ["dept", "from", "institution", "college", "organisation", "organization", "institute", "branch"],
+  position: ["place", "prize", "rank", "secured", "result"],
+  title: ["topic", "paper title", "patent title", "copyright title", "project title"],
+  event: ["event name", "competition", "contest"],
+  date: ["dated", "date of event"],
+};
+const EMAIL_NAMES = ["email", "e-mail", "mail", "email id", "mail id", "email address", "e mail"];
+const DESIGN_NAMES = ["type", "certificate", "certificate type", "design", "category", "variant"];
+
+/** Guess which field each spreadsheet heading belongs to. Exact matches win over partial ones. */
+export function autoMap(headers: string[], fields: string[], multiDesign: boolean): string[] {
+  const targets = [
+    { key: EMAIL_KEY, names: EMAIL_NAMES },
+    ...(multiDesign ? [{ key: DESIGN_KEY, names: DESIGN_NAMES }] : []),
+    ...fields.map((f) => ({ key: f, names: [f, ...(ALIASES[normKey(f)] ?? [])] })),
   ];
+  const used = new Set<string>();
   const pick = (h: string, exact: boolean) => {
-    const n = norm(h);
+    const n = normKey(h);
     for (const t of targets) {
       if (used.has(t.key)) continue;
-      if (t.names.some((x) => (exact ? norm(x) === n : n.includes(norm(x)) && norm(x).length >= 4))) return t.key;
+      if (t.names.some((x) => (exact ? normKey(x) === n : normKey(x).length >= 4 && n.includes(normKey(x))))) return t.key;
     }
     return IGNORE;
   };
-  // Exact matches first so "Name" doesn't get stolen by a fuzzy "Event name" match.
-  const result = headers.map((h) => {
+  const first = headers.map((h) => {
     const k = pick(h, true);
     if (k) used.add(k);
     return k;
   });
-  return result.map((k, i) => {
+  return first.map((k, i) => {
     if (k) return k;
     const f = pick(headers[i], false);
     if (f) used.add(f);
@@ -47,48 +60,28 @@ export async function readSpreadsheet(file: File): Promise<{ headers: string[]; 
   if (!sheet) throw new Error("The file has no sheets");
   const all = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: "", blankrows: false });
   const cells = all.map((r) => r.map((c) => String(c ?? "").trim()));
-  const headerIdx = cells.findIndex((r) => r.filter(Boolean).length >= 1);
+  const headerIdx = cells.findIndex((r) => r.some(Boolean));
   if (headerIdx < 0) throw new Error("The sheet is empty");
   const headers = cells[headerIdx].map((h, i) => h || `Column ${i + 1}`);
   const rows = cells.slice(headerIdx + 1).filter((r) => r.some(Boolean));
   return { headers, rows };
 }
 
-export function matchVariant(value: string, variants: Variant[]): string | undefined {
-  const n = norm(value);
+export function matchDesign(value: string, designs: { id: string; name: string }[]): string | undefined {
+  const n = normKey(value);
   if (!n) return undefined;
+  const short = (s: string) => normKey(s.split("—").pop() ?? s);
   return (
-    variants.find((v) => norm(v.id) === n || norm(v.label) === n)?.id ??
-    variants.find((v) => norm(v.label).includes(n) || n.includes(norm(v.label)))?.id
+    designs.find((d) => normKey(d.name) === n || short(d.name) === n)?.id ??
+    designs.find((d) => short(d.name).includes(n) || n.includes(short(d.name)))?.id
   );
 }
 
-/** Row values with "same for everyone" fallbacks applied. */
-export function resolveValues(row: Row, columns: Column[], common: Record<string, string>): Record<string, string> {
+/** Row values with the "same for everyone" fallbacks applied. */
+export function resolveValues(row: Row, fields: string[], common: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const c of columns) out[c.key] = (row[c.key] ?? "").trim() || (common[c.key] ?? "").trim();
-  out[EMAIL_KEY] = (row[EMAIL_KEY] ?? "").trim();
+  for (const f of fields) out[f] = (row[f] ?? "").trim() || (common[f] ?? "").trim();
   return out;
-}
-
-/** Replace {Name}, {Event}, {Type} and any {Column label/key} placeholders. Unknown ones are left as-is. */
-export function fillPlaceholders(
-  text: string,
-  values: Record<string, string>,
-  ev: EventTemplate,
-  variant: Variant,
-): string {
-  const lookup = new Map<string, string>([
-    ["event", ev.name],
-    ["type", variant.label],
-    ["certificate", variant.label],
-    ["email", values[EMAIL_KEY] ?? ""],
-  ]);
-  for (const c of ev.columns) {
-    lookup.set(norm(c.key), values[c.key] ?? "");
-    lookup.set(norm(c.label), values[c.key] ?? "");
-  }
-  return text.replace(/\{([^{}]+)\}/g, (m, name: string) => lookup.get(norm(name)) ?? m);
 }
 
 export const isEmail = (s: string) => /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/.test(s.trim());

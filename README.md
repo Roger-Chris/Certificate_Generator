@@ -4,56 +4,39 @@ Password-protected website that fills Canva certificate templates (blank PNG exp
 uploaded from Excel, downloads them as a ZIP of PDFs, and emails each person their certificate from
 `rit.ecertificate@gmail.com`.
 
-- **Next.js 16** on **Vercel**. Certificates are drawn in the browser (canvas → PDF with pdf-lib), so
-  nothing about the people is stored on the server.
-- Templates live in the repo under `public/templates/<event>/` (PNG files + `event.json`).
+- **Next.js 16** on **Vercel**. Designs are HTML; certificates are rendered in the browser (HTML → image → PDF with
+  pdf-lib), so the list of people is never stored on the server.
+- Designs and uploaded images are stored in **Supabase Postgres** (`cg_designs`, `cg_assets`, created automatically).
 - Email goes through Gmail (Nodemailer + Google App Password), one message per person with the PDF attached.
 
 ## Using it
 
 1. Sign in with the admin password.
-2. Pick an event → pick the design (Winner / Participation / …).
-3. Type names in the table, paste cells straight from Excel, or **Upload Excel / CSV** (headers such as
-   `Name`, `Department`, `Email` are matched automatically; you can fix the mapping before importing).
-   Use **Sample Excel** to get a sheet with the right headers.
-4. Check the live preview (use ‹ › to step through people). A ⚠ appears if a long name had to be shrunk a lot.
-5. **Download ZIP** → one PDF per person, named after them.
-6. **Email**: edit the subject/message (`{Name}`, `{Event}`, `{Type}`, `{Department / Institution}` …),
-   send yourself a test, then **Email N people**. Keep the tab open while it sends; failed rows can be retried and a
-   CSV report downloaded. Gmail allows roughly 500 emails/day per account.
+2. **Designs** (home page) shows every certificate design, grouped by event. The 16 RIT designs recreated from the
+   original Canva certificates can be added with one click the first time.
+3. **Edit** opens the Canva-style editor:
+   - click anything to select it, drag to move, drag the handles to resize, the round handle to rotate
+     (pink guides snap to the page centre and other items);
+   - double-click text to type; select words to make them bold / italic / underlined / superscript or recolour them;
+   - the left panel adds headings, text, shapes, **fill-in fields** (`{Name}`, `{Department}`, `{Position}`, `{Title}`,
+     `{Date}`, custom ones), images and signatures (**Images** → upload your own or use the RIT library), and
+     lists all **Layers** (reorder, hide, lock);
+   - the right panel changes fonts, sizes, colours (incl. gold gradients), spacing, alignment, page size and background;
+   - Ctrl+Z / Ctrl+Shift+Z undo/redo, Ctrl+D duplicate, Ctrl+C / Ctrl+V copy/paste, arrows nudge, Delete removes;
+   - changes save automatically.
+4. **Create certificates**: type names, paste cells from Excel, or **Upload Excel / CSV** (headings like `Name`,
+   `Department`, `Email` are matched automatically). Designs of the same event can be mixed per row (e.g. Winner /
+   Participation) with a “Certificate type” column. The preview is exactly what the PDF looks like.
+5. **Download ZIP** → one PDF per person, named after them. **Email** → edit the subject/message (`{Name}`, `{Event}`,
+   `{Type}`, any field), send yourself a test, then email everyone. Keep the tab open while it sends; failed rows can be
+   retried and a CSV report downloaded. Gmail allows roughly 500 emails a day.
 
-## Adding a new event (e.g. Academic Staff College)
+Everything a certificate needs — text, fields, logos, signatures, background — is part of the editable design, so a new
+event (e.g. **Academic Staff College**) is: duplicate a similar design, change the heading and wording, save.
 
-1. In Canva, export the certificate as **PNG** with the fill-in lines left empty (one PNG per design).
-2. Open **Template editor** → type the event name → **Add design (PNG)**.
-3. Green bars show the blank lines found on the image — click one to drop a text field on it. Drag to fine-tune,
-   pick the font/size/colour to match Canva, and choose which column each field shows.
-4. **Download template folder (.zip)**, unzip it into `public/templates/`, then commit and push:
-
-   ```bash
-   git add public/templates && git commit -m "Add Academic Staff College template" && git push
-   ```
-
-   Vercel redeploys automatically and the event shows up on the home page.
-
-`event.json` reference (units are image pixels; `y` is the text baseline, just above the line):
-
-```json
-{
-  "name": "Event name",
-  "description": "Dates / venue",
-  "order": 10,
-  "columns": [{ "key": "name", "label": "Name", "aliases": ["full name"], "default": "" }],
-  "variants": [{
-    "id": "participation", "label": "Participation", "image": "participation.png", "width": 2000, "height": 1414,
-    "fields": [{ "key": "name", "x": 760, "y": 703, "width": 470, "fontFamily": "Lora", "fontSize": 40,
-                 "fontWeight": 700, "color": "#0d4a8b", "align": "center", "transform": "title" }]
-  }],
-  "email": { "subject": "Your {Event} certificate", "body": "Dear {Name}, ..." }
-}
-```
-
-Fonts available for fields are listed in `src/lib/fonts.ts` (Google Fonts); add a family there if Canva used another.
+Original Canva artwork was cut into separate images by `scripts/extract_art.py` (logos, signatures, seals →
+`public/assets/brand/`, text-free frames → `public/assets/backgrounds/`). To use a new Canva frame, export it from Canva
+**with the text hidden** and upload it as the background in the editor.
 
 ## Setup
 
@@ -66,6 +49,7 @@ Fonts available for fields are listed in `src/lib/fonts.ts` (Google Fonts); add 
 | `GMAIL_USER` | `rit.ecertificate@gmail.com` |
 | `GMAIL_APP_PASSWORD` | Google **App Password** for that account (not the normal password) |
 | `MAIL_FROM_NAME` | Sender name, e.g. `Rajalakshmi Institute of Technology` |
+| `DATABASE_URL` | Supabase **Transaction pooler** connection string (Dashboard → Connect → Transaction pooler, port 6543). Empty = local `.data/` folder (development only). |
 
 **Gmail App Password:** sign in to the Gmail account → Google Account → Security → turn on 2-Step Verification →
 search "App passwords" → create one named "Certificate Generator" → copy the 16 characters into
