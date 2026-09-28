@@ -11,6 +11,7 @@ export default function Thumb({ design, values }: { design: Design; values?: Rec
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    setW(el.clientWidth);
     const ro = new ResizeObserver(() => setW(el.clientWidth));
     ro.observe(el);
     return () => ro.disconnect();

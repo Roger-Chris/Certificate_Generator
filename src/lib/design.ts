@@ -56,6 +56,15 @@ export type DesignElement = TextElement | ImageElement | ShapeElement;
 
 export type FieldCase = "none" | "title" | "upper";
 
+export interface FieldOptions {
+  case?: FieldCase;
+  sample?: string;
+  /** Blank reserved for the value, in letter widths (CSS `ch`), so short and long names give the same layout. */
+  minCh?: number;
+  /** Extra space on each side of the value, in letter widths. */
+  padCh?: number;
+}
+
 export interface Design {
   id: string;
   name: string;
@@ -69,7 +78,7 @@ export interface Design {
   /** Gap in px between items of each auto-spacing row. */
   rowGaps?: Record<string, number>;
   /** Per-field options keyed by field name ("Name"). */
-  fields?: Record<string, { case?: FieldCase; sample?: string }>;
+  fields?: Record<string, FieldOptions>;
   email: { subject: string; body: string };
   updatedAt?: string;
 }
@@ -125,6 +134,11 @@ export const sampleFor = (d: Design, field: string) =>
 export const caseFor = (d: Design, field: string): FieldCase =>
   d.fields?.[field]?.case ?? (normKey(field) === "name" ? "title" : "none");
 
+/** Default blank widths (in letters) — roughly the lengths of the blank lines on the original certificates. */
+const DEFAULT_MIN_CH: Record<string, number> = { name: 22, department: 16, position: 8, event: 14, date: 10 };
+export const minChFor = (d: Design, field: string) => d.fields?.[field]?.minCh ?? DEFAULT_MIN_CH[normKey(field)] ?? 0;
+export const padChFor = (d: Design, field: string) => d.fields?.[field]?.padCh ?? 1;
+
 export function applyCase(text: string, c: FieldCase | undefined): string {
   const s = text.trim().replace(/\s+/g, " ");
   if (c === "upper") return s.toUpperCase();
@@ -138,17 +152,76 @@ function decodeEntities(s: string) {
   return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
 }
 
+/** Underline style applied to a token by its surrounding markup (<u> or text-decoration), if any. */
+function underlineOf(node: Node, root: Element): { color: string; thickness: string } | null {
+  for (let el = node.parentElement; el && el !== root.parentElement; el = el.parentElement) {
+    const line = el.style.textDecorationLine || el.style.textDecoration;
+    if (el.tagName === "U" || /underline/.test(line)) {
+      const t = el.style.textDecorationThickness;
+      return { color: el.style.textDecorationColor || "currentColor", thickness: t && /\d/.test(t) ? t : "2px" };
+    }
+  }
+  return null;
+}
+
 /**
  * Replace `{Field}` tokens with values (HTML-escaped). `values` keys are matched case-insensitively.
  * Unknown tokens are left visible so mistakes show up in the preview.
+ *
+ * Each value is placed in a fixed-width blank (min width + padding on both sides, centred) so the
+ * surrounding text doesn't reflow between a short and a long name. If the token was underlined, the
+ * underline is drawn across the whole blank, like the lines on a printed certificate.
  */
 export function fillHtml(html: string, d: Design, values: Record<string, string>): string {
   const byKey = new Map(Object.entries(values).map(([k, v]) => [normKey(k), v]));
-  return html.replace(TOKEN, (m, raw: string) => {
+  const valueOf = (raw: string) => {
     const name = decodeEntities(raw.trim());
     const v = byKey.get(normKey(name));
-    return v === undefined ? m : escapeHtml(applyCase(v, caseFor(d, name)));
-  });
+    return v === undefined ? undefined : { name, text: applyCase(v, caseFor(d, name)) };
+  };
+  if (typeof DOMParser === "undefined") {
+    return html.replace(TOKEN, (m, raw: string) => {
+      const f = valueOf(raw);
+      return f ? escapeHtml(f.text) : m;
+    });
+  }
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstElementChild!;
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (/\{[^{}]+\}/.test(n.nodeValue ?? "")) textNodes.push(n as Text);
+  for (const node of textNodes) {
+    const src = node.nodeValue ?? "";
+    const frag = doc.createDocumentFragment();
+    let last = 0;
+    for (const m of src.matchAll(TOKEN)) {
+      const f = valueOf(m[1]);
+      if (!f) continue;
+      frag.append(src.slice(last, m.index));
+      const box = doc.createElement("span");
+      box.textContent = f.text;
+      const u = underlineOf(node, root);
+      box.style.cssText = [
+        "display:inline-block",
+        `min-width:${minChFor(d, f.name)}ch`,
+        `padding:0 ${padChFor(d, f.name)}ch`,
+        "max-width:100%",
+        "text-align:center",
+        "text-indent:0",
+        "white-space:normal",
+        "line-height:1.15",
+        u ? `text-decoration:none;border-bottom:${u.thickness} solid ${u.color}` : "",
+      ]
+        .filter(Boolean)
+        .join(";");
+      frag.append(box);
+      last = (m.index ?? 0) + m[0].length;
+    }
+    if (last === 0) continue;
+    frag.append(src.slice(last));
+    node.replaceWith(frag);
+  }
+  return root.innerHTML;
 }
 
 export function fillText(text: string, values: Record<string, string>): string {

@@ -78,10 +78,12 @@ export function validateDesign(v: unknown): Design {
   if (!Array.isArray(o.elements) || o.elements.length > 400) throw new Error("Invalid elements");
   const fields: Design["fields"] = {};
   if (o.fields && typeof o.fields === "object") {
-    for (const [k, f] of Object.entries(o.fields as Record<string, { case?: string; sample?: string }>).slice(0, 50)) {
+    for (const [k, f] of Object.entries(o.fields as Record<string, { case?: string; sample?: string; minCh?: unknown; padCh?: unknown }>).slice(0, 50)) {
       fields[k.slice(0, 40)] = {
         case: f?.case === "title" || f?.case === "upper" || f?.case === "none" ? f.case : undefined,
         sample: optStr(f?.sample, "sample", 200),
+        minCh: f?.minCh === undefined ? undefined : num(f.minCh, "field width", 0, 200),
+        padCh: f?.padCh === undefined ? undefined : num(f.padCh, "field spacing", 0, 20),
       };
     }
   }

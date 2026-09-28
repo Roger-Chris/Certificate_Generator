@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { type Design, type DesignElement, type FieldCase, SIZES, type TextElement, caseFor, sampleFor } from "@/lib/design";
+import { type Design, type DesignElement, type FieldCase, SIZES, type TextElement, caseFor, minChFor, padChFor, sampleFor } from "@/lib/design";
 import { FONTS } from "@/lib/fonts";
 
 export interface InspectorProps {
@@ -258,7 +258,10 @@ function DesignPanel(p: InspectorProps) {
           </p>
         ) : (
           <>
-            <p className="text-[11px] text-slate-500">Each becomes a column when creating certificates. Sample text is only for the preview.</p>
+            <p className="text-[11px] text-slate-500">
+              Each becomes a column when creating certificates. The value sits in a fixed blank (width + space each side), so the
+              layout stays the same for short and long names. Sample text is only for the preview.
+            </p>
             {p.fields.map((f) => (
               <div key={f} className="rounded-lg border border-slate-200 p-2">
                 <p className="mb-1.5 font-mono text-xs font-semibold text-gold-600">{`{${f}}`}</p>
@@ -279,6 +282,14 @@ function DesignPanel(p: InspectorProps) {
                     <option value="title">Title Case</option>
                     <option value="upper">UPPERCASE</option>
                   </select>
+                </div>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  <Row label="Blank width (letters)">
+                    <Num value={minChFor(d, f)} min={0} max={200} onChange={(v) => p.patchDesign({ fields: { ...d.fields, [f]: { ...d.fields?.[f], minCh: v } } }, `minch-${f}`)} />
+                  </Row>
+                  <Row label="Space each side">
+                    <Num value={padChFor(d, f)} min={0} max={20} step={0.5} onChange={(v) => p.patchDesign({ fields: { ...d.fields, [f]: { ...d.fields?.[f], padCh: v } } }, `padch-${f}`)} />
+                  </Row>
                 </div>
               </div>
             ))}
