@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BACKGROUNDS, BRAND_ASSETS } from "@/lib/brand";
+import { naturalSize, setDragPayload, uploadImage } from "./dnd";
 
 export interface PickedImage {
   src: string;
@@ -15,14 +16,6 @@ interface Upload {
   name: string;
   url: string;
 }
-
-const naturalSize = (src: string) =>
-  new Promise<{ w: number; h: number }>((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => resolve({ w: 400, h: 300 });
-    img.src = src;
-  });
 
 /** Uploads + the RIT artwork library. Clicking an image calls onPick with its natural size. */
 export default function ImageLibrary({ onPick, showBackgrounds = true }: { onPick: (img: PickedImage, kind: "image" | "background") => void; showBackgrounds?: boolean }) {
@@ -43,12 +36,12 @@ export default function ImageLibrary({ onPick, showBackgrounds = true }: { onPic
     setBusy(true);
     setError(null);
     for (const f of Array.from(files)) {
-      const fd = new FormData();
-      fd.append("file", f);
-      const res = await fetch("/api/assets", { method: "POST", body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) setError(data.error ?? "Upload failed");
-      else setUploads((u) => [data.asset, ...(u ?? [])]);
+      try {
+        const asset = await uploadImage(f);
+        setUploads((u) => [asset, ...(u ?? [])]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Upload failed");
+      }
     }
     setBusy(false);
     if (input.current) input.current.value = "";
@@ -73,7 +66,10 @@ export default function ImageLibrary({ onPick, showBackgrounds = true }: { onPic
           {busy ? "Uploading…" : "Upload image"}
         </button>
         <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
-        <p className="mt-1 text-[11px] text-slate-500">PNG with a transparent background works best for logos and signatures.</p>
+        <p className="mt-1 text-[11px] text-slate-500">
+          PNG with a transparent background works best for logos and signatures. Click an image to add it, drag it onto the
+          certificate, or drop files from your computer straight onto the page.
+        </p>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
 
@@ -83,7 +79,7 @@ export default function ImageLibrary({ onPick, showBackgrounds = true }: { onPic
           <div className="grid grid-cols-2 gap-2">
             {uploads.map((u) => (
               <div key={u.key} className="group relative">
-                <button onClick={() => pick(u.url, u.name, "image")} className="checker grid h-20 w-full place-items-center rounded border border-slate-200 p-1 hover:border-gold-500" title={u.name}>
+                <button draggable onDragStart={(e) => setDragPayload(e, { kind: "image", src: u.url, name: u.name })} onClick={() => pick(u.url, u.name, "image")} className="checker grid h-20 w-full place-items-center rounded border border-slate-200 p-1 hover:border-gold-500" title={u.name}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={u.url} alt={u.name} className="max-h-full max-w-full object-contain" />
                 </button>
@@ -101,7 +97,7 @@ export default function ImageLibrary({ onPick, showBackgrounds = true }: { onPic
           <h3 className="label">{g}</h3>
           <div className="grid grid-cols-2 gap-2">
             {BRAND_ASSETS.filter((a) => a.group === g).map((a) => (
-              <button key={a.src} onClick={() => pick(a.src, a.name, "image", { w: a.w, h: a.h })} className="checker grid h-20 place-items-center rounded border border-slate-200 p-1 hover:border-gold-500" title={a.name}>
+              <button key={a.src} draggable onDragStart={(e) => setDragPayload(e, { kind: "image", src: a.src, name: a.name, w: a.w, h: a.h })} onClick={() => pick(a.src, a.name, "image", { w: a.w, h: a.h })} className="checker grid h-20 place-items-center rounded border border-slate-200 p-1 hover:border-gold-500" title={a.name}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={a.src} alt={a.name} className="max-h-full max-w-full object-contain" />
               </button>

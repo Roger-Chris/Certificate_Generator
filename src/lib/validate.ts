@@ -33,6 +33,7 @@ function element(e: unknown): DesignElement {
     opacity: o.opacity === undefined ? undefined : num(o.opacity, "opacity", 0, 1),
     locked: o.locked === true || undefined,
     hidden: o.hidden === true || undefined,
+    row: typeof o.row === "string" && o.row.trim() ? o.row.trim().slice(0, 40) : undefined,
   };
   if (o.type === "text") {
     return {
@@ -84,6 +85,9 @@ export function validateDesign(v: unknown): Design {
       };
     }
   }
+  const rowGaps: Record<string, number> = {};
+  if (o.rowGaps && typeof o.rowGaps === "object")
+    for (const [k, g] of Object.entries(o.rowGaps as Record<string, unknown>).slice(0, 30)) rowGaps[k.slice(0, 40)] = num(g, "row gap", 0, 2000);
   const email = (o.email ?? {}) as Record<string, unknown>;
   return {
     id: typeof o.id === "string" ? o.id.slice(0, 40) : "",
@@ -94,6 +98,7 @@ export function validateDesign(v: unknown): Design {
     background: str(o.background ?? "#ffffff", "background", 40),
     backgroundImage: o.backgroundImage ? src(o.backgroundImage) : null,
     elements: o.elements.map(element),
+    rowGaps,
     fields,
     email: {
       subject: optStr(email.subject, "email subject", 300) ?? DEFAULT_EMAIL.subject,

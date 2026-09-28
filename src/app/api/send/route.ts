@@ -18,9 +18,24 @@ function getTransporter(): Transporter {
 
 const configured = () => Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
 
-/** Lets the UI show whether email is set up, and which address it sends from. */
-export async function GET() {
-  return NextResponse.json({ configured: configured(), from: process.env.GMAIL_USER ?? null });
+/**
+ * Lets the UI show whether email is set up, and which address it sends from.
+ * `?verify=1` also signs in to Gmail to check the App Password (sends nothing).
+ */
+export async function GET(request: Request) {
+  const info = { configured: configured(), from: process.env.GMAIL_USER ?? null };
+  if (!new URL(request.url).searchParams.has("verify") || !info.configured) return NextResponse.json(info);
+  try {
+    await getTransporter().verify();
+    return NextResponse.json({ ...info, verified: true });
+  } catch (err) {
+    transporter = null;
+    const message = err instanceof Error ? err.message : "Unknown error";
+    const hint = /Invalid login|Username and Password not accepted|535/i.test(message)
+      ? "Gmail rejected the login. Check GMAIL_USER and that GMAIL_APP_PASSWORD is a 16-letter App Password (not the normal password)."
+      : message;
+    return NextResponse.json({ ...info, verified: false, error: hint });
+  }
 }
 
 const escapeHtml = (s: string) =>

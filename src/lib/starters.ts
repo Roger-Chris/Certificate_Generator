@@ -19,6 +19,9 @@ const logo = (file: string, x: number, y: number, scale = 1): ImageElement => {
   return image(a.src, x, y, Math.round(a.w * scale), Math.round(a.h * scale), a.name);
 };
 
+/** Put elements in an auto-spacing row: removing one re-centres the rest with equal gaps. */
+const inRow = (row: string, ...els: ImageElement[]): ImageElement[] => els.map((e) => ({ ...e, row }));
+
 const text = (html: string, x: number, y: number, w: number, h: number, style: Partial<TextElement> = {}, name?: string): TextElement => ({
   type: "text", id: id(), name, html, x, y, w, h,
   fontFamily: "Lora", fontSize: 40, fontWeight: 400, color: "#1a1a1a", align: "center", valign: "top", lineHeight: 1.3, autoFit: true,
@@ -61,7 +64,7 @@ function ipDay(): Design {
   const navy = "#1f2f5c";
   const gold = "#c8912e";
   return design("World IP Day — Intellectual Award", "World IP Day 2026", "ip-day", 2000, 1414, [
-    logo("rit-logo", 503, 75), logo("nba", 957, 75), logo("naac", 1135, 70), logo("iic", 1325, 72),
+    ...inRow("logos", logo("rit-logo", 503, 75), logo("nba", 957, 75), logo("naac", 1135, 70), logo("iic", 1325, 72)),
     text("WORLD IP DAY", 450, 196, 1100, 84, { fontFamily: "Russo One", fontSize: 66, color: navy, letterSpacing: 3 }, "Heading"),
     text("RIT INTELLECTUAL AWARD 2026", 250, 288, 1500, 64, { fontFamily: "Space Mono", fontSize: 46, fontWeight: 700, color: navy, letterSpacing: 14 }, "Sub-heading"),
     logo("gold-medal", 599, 378),
@@ -94,7 +97,7 @@ function freshBlue(kind: "winner" | "participation" | "volunteer"): Design {
   }[kind];
   const label = { winner: "Winner", participation: "Participation", volunteer: "Volunteer" }[kind];
   return design(`Freshathon 2.0 — ${label} (blue)`, "Freshathon 2.0", "freshathon-blue", 2000, 1414, [
-    logo("rit-logo", 418, 165), logo("nba", 873, 165), logo("naac", 1050, 160), logo("iic", 1240, 163), logo("sdg-wheel", 1495, 160),
+    ...inRow("logos", logo("rit-logo", 418, 165), logo("nba", 873, 165), logo("naac", 1050, 160), logo("iic", 1240, 163), logo("sdg-wheel", 1495, 160)),
     logo("freshathon-2-title", 791, 341),
     text("CERTIFICATE", 450, 450, 1100, 125, { fontFamily: "Playfair Display", fontSize: 112, fontWeight: 800, color: blue }, "Title"),
     text(kind === "participation" ? "OF PARTICIPATION" : "OF APPRECIATION", 500, 566, 1000, 70, {
@@ -115,8 +118,7 @@ function freshGold(watermark: boolean): Design {
   const els: DesignElement[] = [];
   if (watermark) els.push({ ...logo("sdg-wheel", 780, 520), w: 440, h: 444, opacity: 0.4, name: "SDG watermark" });
   els.push(
-    logo("rit-logo", 409, 222), logo("nba", 864, 221), logo("naac", 1043, 217), logo("iic", 1232, 219),
-    ...(watermark ? [] : [logo("sdg-wheel", 1482, 212)]),
+    ...inRow("logos", logo("rit-logo", 409, 222), logo("nba", 864, 221), logo("naac", 1043, 217), logo("iic", 1232, 219), ...(watermark ? [] : [logo("sdg-wheel", 1482, 212)])),
     logo("ribbon-seal", 1614, 231),
     text("CERTIFICATE", 520, 330, 960, 130, { fontFamily: "DM Serif Display", fontSize: 124, color: brown }, "Title"),
     text("OF APPRECIATION", 560, 448, 880, 76, { fontFamily: "Cormorant Garamond", fontSize: 66, fontWeight: 600, color: brown, letterSpacing: 2 }, "Subtitle"),
@@ -145,8 +147,8 @@ function designathon(kind: "winner" | "participation" | "volunteer"): Design {
   }[kind];
   const label = { winner: "Winner", participation: "Participation", volunteer: "Volunteer" }[kind];
   return design(`Designathon 1.0 — ${label}`, "Designathon 1.0", "designathon", 1920, 1080, [
-    logo("rit-logo", 515, 127, 0.76), logo("nba", 862, 127, 0.76), logo("naac", 998, 124, 0.76), logo("iic", 1143, 125, 0.76),
-    logo("swadeshi-shodh-sansthan", 1325, 111, 0.91),
+    ...inRow("logos", logo("rit-logo", 515, 127, 0.76), logo("nba", 862, 127, 0.76), logo("naac", 998, 124, 0.76), logo("iic", 1143, 125, 0.76)),
+    ...inRow("logos", logo("swadeshi-shodh-sansthan", 1325, 111, 0.91)),
     text(`<span style="color: #0d4f96">DESIGN</span><span style="color: #f07f23">ATHON</span> <span style="color: #1c2a4a">1.0</span>`, 560, 212, 800, 66, {
       fontFamily: "Poppins", fontSize: 50, fontWeight: 700,
     }, "Event name"),
@@ -169,9 +171,9 @@ function gameathon(contest: "Chess Tournament" | "Hackathon"): Design {
   const indigo = "#2e2f7f";
   const sig = { lineW: 302, lineColor: "#111111", font: "Hanken Grotesk", nameColor: ink, roleColor: ink, nameSize: 30, roleSize: 26 };
   return design(`Gameathon 2026 — ${contest}`, "Gameathon 2026", "gameathon", 2000, 1414, [
-    logo("rit-logo", 262, 122, 1.23), logo("gameathon-logo", 820, 98), logo("revolution-games", 1389, 106),
+    ...inRow("logos", logo("rit-logo", 262, 122, 1.23), logo("gameathon-logo", 820, 98), logo("revolution-games", 1389, 106)),
     text("In Association with", 750, 262, 500, 45, { fontFamily: "Hanken Grotesk", fontSize: 28, fontWeight: 700, italic: true, color: "#111111" }),
-    logo("8queens", 606, 326), logo("inspire", 898, 326), logo("distinct", 1191, 320),
+    ...inRow("partners", logo("8queens", 606, 326), logo("inspire", 898, 326), logo("distinct", 1191, 320)),
     text("CERTIFICATE", 400, 455, 1200, 110, { fontFamily: "Playfair Display", fontSize: 96, fontWeight: 700, color: indigo, letterSpacing: 22 }, "Title"),
     text("OF PARTICIPATION", 400, 560, 1200, 78, { fontFamily: "Playfair Display", fontSize: 60, fontWeight: 700, color: indigo, letterSpacing: 14 }, "Subtitle"),
     text(
@@ -203,8 +205,8 @@ function futurepreneur(kind: "winner" | "participation", day: "19-20" | "21"): D
     `FUTUREPRENEUR — ${kind === "winner" ? "Winner" : "Participation"} (${day === "19-20" ? "19 & 20 Nov" : "21 Nov"})`,
     "FUTUREPRENEUR 2025-26", "futurepreneur", 2000, 1414,
     [
-      logo("rit-logo-tagline", 227, 115), logo("tn-emblem", 659, 111), logo("edii-tn", 850, 97),
-      logo("nba", 1090, 115, 1.24), logo("naac", 1315, 110, 1.25), logo("iic", 1550, 115, 1.26),
+      ...inRow("logos", logo("rit-logo-tagline", 227, 115), logo("tn-emblem", 659, 111), logo("edii-tn", 850, 97)),
+      ...inRow("logos", logo("nba", 1090, 115, 1.24), logo("naac", 1315, 110, 1.25), logo("iic", 1550, 115, 1.26)),
       text("CERTIFICATE", 450, 258, 1100, 105, { fontFamily: "Cinzel", fontSize: 92, fontWeight: 700, color: gold[0], gradient: gold, letterSpacing: 20 }, "Title"),
       text(kind === "winner" ? "OF APPRECIATION" : "OF PARTICIPATION", 500, 356, 1000, 64, { fontFamily: "Playfair Display", fontSize: 52, fontWeight: 700, color: gold[0], gradient: gold }, "Subtitle"),
       text("FUTUREPRENEUR 2025-26", 450, 436, 1100, 76, { fontFamily: "Montserrat", fontSize: 62, fontWeight: 600, color: ink }, "Event name"),
@@ -221,7 +223,7 @@ function futurepreneur(kind: "winner" | "participation", day: "19-20" | "21"): D
 function japan(): Design {
   const ink = "#222222";
   return design("National Foundation Day of Japan — Winner", "National Foundation Day of Japan", "japan", 2000, 1414, [
-    logo("rit-logo", 718, 88, 1.48),
+    ...inRow("logos", logo("rit-logo", 718, 88, 1.48)),
     text("RAJALAKSHMI INSTITUTE OF TECHNOLOGY", 300, 280, 1400, 72, { fontFamily: "Audiowide", fontSize: 54, color: "#111111" }, "Heading"),
     text("NATIONAL FOUNDATION DAY OF JAPAN", 150, 436, 1700, 96, { fontFamily: "Audiowide", fontSize: 74, color: "#2b2b2b" }, "Title"),
     text(

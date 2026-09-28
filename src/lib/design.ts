@@ -11,6 +11,8 @@ export interface ElementBase {
   opacity?: number;
   locked?: boolean;
   hidden?: boolean;
+  /** Auto-spacing row (e.g. "logos"): members are centred on the page with equal gaps. */
+  row?: string;
 }
 
 export type Align = "left" | "center" | "right" | "justify";
@@ -64,6 +66,8 @@ export interface Design {
   background: string;
   backgroundImage?: string | null;
   elements: DesignElement[];
+  /** Gap in px between items of each auto-spacing row. */
+  rowGaps?: Record<string, number>;
   /** Per-field options keyed by field name ("Name"). */
   fields?: Record<string, { case?: FieldCase; sample?: string }>;
   email: { subject: string; body: string };
@@ -168,6 +172,7 @@ const ALLOWED_STYLES = [
   "text-decoration-thickness",
   "text-underline-offset",
   "background-color",
+  "text-align",
 ];
 
 /** Keep only simple formatting markup (runs in the browser; used on every render and when saving edits). */

@@ -3,6 +3,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import CertificateView from "@/components/CertificateView";
 import type { Design, DesignElement } from "@/lib/design";
+import { DND_MIME, type DropPayload } from "./dnd";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type Drag =
@@ -25,8 +26,10 @@ export interface StageProps {
   onCommitText: (id: string, html: string) => void;
   /** Live update while dragging (not recorded in undo history until onGestureEnd). */
   onLive: (id: string, patch: Partial<DesignElement>) => void;
-  onGestureStart: () => void;
+  onGestureStart: (id: string) => void;
   onGestureEnd: () => void;
+  /** Something was dropped on the page: a panel item, or image files from the computer. */
+  onDrop: (payload: DropPayload | null, files: File[], at: { x: number; y: number }) => void;
   scrollerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -35,6 +38,7 @@ export default function Stage(p: StageProps) {
   const surface = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
+  const [dropping, setDropping] = useState(false);
   const selected = design.elements.find((e) => e.id === p.selectedId && !e.hidden) ?? null;
 
   const toDesign = (clientX: number, clientY: number) => {
@@ -51,7 +55,7 @@ export default function Stage(p: StageProps) {
       // Some pointer sources (pens/automation) can't be captured; the stage's move/up handlers still work.
     }
     drag.current = d;
-    p.onGestureStart();
+    p.onGestureStart(d.id);
   };
 
   // Snap an element's edges/centre to the page and other elements.
@@ -173,9 +177,32 @@ export default function Stage(p: StageProps) {
       onPointerDown={() => p.onSelect(null)}
       onPointerMove={onPointerMove}
       onPointerUp={end}
+      onDragOver={(e) => {
+        const t = e.dataTransfer.types;
+        if (!t.includes(DND_MIME) && !t.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        if (!dropping) setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        setDropping(false);
+        const raw = e.dataTransfer.getData(DND_MIME);
+        const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/"));
+        if (!raw && !files.length) return;
+        e.preventDefault();
+        let payload: DropPayload | null = null;
+        try {
+          payload = raw ? (JSON.parse(raw) as DropPayload) : null;
+        } catch {}
+        const at = toDesign(e.clientX, e.clientY);
+        p.onDrop(payload, files, { x: Math.max(0, Math.min(design.width, at.x)), y: Math.max(0, Math.min(design.height, at.y)) });
+      }}
     >
       <div style={{ width: design.width * z + PAD * 2, height: design.height * z + PAD * 2, position: "relative", margin: "0 auto" }}>
-        <div ref={surface} className="absolute shadow-xl" style={{ left: PAD, top: PAD, width: design.width * z, height: design.height * z }}>
+        <div ref={surface} className={`absolute shadow-xl ${dropping ? "outline outline-4 outline-offset-4 outline-gold-400" : ""}`} style={{ left: PAD, top: PAD, width: design.width * z, height: design.height * z }}>
           <div style={{ transform: `scale(${z})`, transformOrigin: "0 0", width: design.width, height: design.height }}>
             <CertificateView design={design} values={p.editingId ? null : p.values} editingId={p.editingId} onCommitText={p.onCommitText} />
           </div>

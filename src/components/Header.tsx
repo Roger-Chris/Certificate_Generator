@@ -30,6 +30,9 @@ export default function Header({ crumbs = [] }: { crumbs?: { href?: string; labe
           <Link href="/" className="text-navy-100 hover:text-white">
             Designs
           </Link>
+          <Link href="/settings" className="text-navy-100 hover:text-white">
+            Settings
+          </Link>
           <button onClick={logout} className="text-navy-100 hover:text-white">
             Sign out
           </button>

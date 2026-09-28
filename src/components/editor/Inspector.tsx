@@ -15,6 +15,51 @@ export interface InspectorProps {
   remove: () => void;
   startEdit: () => void;
   openPicker: (target: "element" | "background") => void;
+  rows: string[];
+  rowGap: number;
+  setRowGap: (row: string, gap: number) => void;
+  recentreRow: (row: string) => void;
+}
+
+/** Membership of an auto-spacing row: members stay centred on the page with equal gaps. */
+function RowSection(p: InspectorProps & { el: DesignElement }) {
+  const { el } = p;
+  const options = [...new Set([...p.rows, "logos"])];
+  return (
+    <Section title="Auto-spacing row">
+      <p className="text-[11px] leading-snug text-slate-500">
+        Items in the same row stay centred on the page with equal gaps. Remove or hide one and the rest re-centre; drag one
+        sideways to change the order.
+      </p>
+      <select
+        className="input"
+        value={el.row ?? ""}
+        onChange={(e) => {
+          let v = e.target.value;
+          if (v === "__new") v = window.prompt("Name for the new row, e.g. partners")?.trim() ?? "";
+          p.patchEl({ row: v || undefined });
+        }}
+      >
+        <option value="">Not in a row (free position)</option>
+        {options.map((r) => (
+          <option key={r} value={r}>
+            Row: {r}
+          </option>
+        ))}
+        <option value="__new">+ New row…</option>
+      </select>
+      {el.row && (
+        <div className="flex items-end gap-2">
+          <Row label="Gap between items">
+            <Num value={p.rowGap} min={0} max={1000} suffix="px" onChange={(v) => p.setRowGap(el.row!, v)} />
+          </Row>
+          <button className="btn-ghost shrink-0 px-2 py-1.5 text-xs" onClick={() => p.recentreRow(el.row!)}>
+            Re-centre row
+          </button>
+        </div>
+      )}
+    </Section>
+  );
 }
 
 const Row = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -76,10 +121,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function Inspector(p: InspectorProps) {
   const { el, design } = p;
   return (
-    <aside className="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white text-sm">
+    <aside className="w-64 shrink-0 overflow-y-auto border-l border-slate-200 bg-white text-sm xl:w-80">
       {!el ? <DesignPanel {...p} /> : el.type === "text" ? <TextPanel {...p} el={el} /> : <ElementPanel {...p} el={el} />}
       {el && (
         <>
+          <RowSection {...p} el={el} />
           <Section title="Position & size">
             <div className="grid grid-cols-2 gap-2">
               <Row label="X">

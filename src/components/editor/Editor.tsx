@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { type Design, type DesignElement, designFields, newId, sampleFor } from "@/lib/design";
+import { gapOf, layoutRow, layoutRows, pinGap, rowNames } from "@/lib/rows";
+import { type DropPayload, imageElement, naturalSize, uploadImage } from "./dnd";
 import ImageLibrary, { type PickedImage } from "./ImageLibrary";
 import Inspector from "./Inspector";
 import SidePanel from "./SidePanel";
@@ -32,6 +34,8 @@ export default function Editor({ id }: { id: string }) {
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [picker, setPicker] = useState<null | "element" | "background">(null);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
   const [, rerender] = useReducer((x: number) => x + 1, 0);
 
   const cur = useRef<Design | null>(null);
@@ -39,6 +43,7 @@ export default function Editor({ id }: { id: string }) {
   const future = useRef<Design[]>([]);
   const lastKey = useRef<{ key: string | null; t: number }>({ key: null, t: 0 });
   const gestureSnap = useRef<Design | null>(null);
+  const gestureId = useRef<string | null>(null);
   const savedJson = useRef("");
   const updatedAt = useRef<string | undefined>(undefined);
   const clipboard = useRef<DesignElement | null>(null);
@@ -98,8 +103,19 @@ export default function Editor({ id }: { id: string }) {
   };
 
   const patchEl = (elId: string, patch: Partial<DesignElement>, key?: string) => {
+    let d = cur.current!;
+    const prev = d.elements.find((e) => e.id === elId);
+    // Showing/hiding, resizing or moving between rows re-centres the affected auto-spacing rows.
+    const rows = [prev?.row, "row" in patch ? patch.row : undefined].filter(Boolean) as string[];
+    const relayout = rows.length > 0 && ["hidden", "w", "h", "row"].some((k) => k in patch);
+    if (relayout) for (const r of rows) d = pinGap(d, r);
+    let next: Design = { ...d, elements: d.elements.map((e) => (e.id === elId ? ({ ...e, ...patch } as DesignElement) : e)) };
+    if (relayout) next = layoutRows(next, rows);
+    commit(next, key ? `${elId}:${key}` : undefined);
+  };
+  const setRowGap = (row: string, gap: number) => {
     const d = cur.current!;
-    commit({ ...d, elements: d.elements.map((e) => (e.id === elId ? ({ ...e, ...patch } as DesignElement) : e)) }, key ? `${elId}:${key}` : undefined);
+    commit(layoutRow({ ...d, rowGaps: { ...d.rowGaps, [row]: gap } }, row), `gap:${row}`);
   };
   const patchDesign = (patch: Partial<Design>, key?: string) => commit({ ...cur.current!, ...patch }, key ? `design:${key}` : undefined);
 
@@ -107,12 +123,21 @@ export default function Editor({ id }: { id: string }) {
     const d = cur.current!;
     setDesign({ ...d, elements: d.elements.map((e) => (e.id === elId ? ({ ...e, ...patch } as DesignElement) : e)) });
   };
-  const gestureStart = () => {
+  const gestureStart = (elId: string) => {
     gestureSnap.current = cur.current;
+    gestureId.current = elId;
   };
   const gestureEnd = () => {
     const snap = gestureSnap.current;
     gestureSnap.current = null;
+    // A row member that was dragged or resized snaps back into its row (dragging sideways reorders the row).
+    const moved = cur.current!.elements.find((e) => e.id === gestureId.current);
+    if (snap && moved?.row) {
+      const d = cur.current!;
+      const withGap = d.rowGaps?.[moved.row] === undefined ? { ...d, rowGaps: { ...d.rowGaps, [moved.row]: gapOf(snap, moved.row) } } : d;
+      setDesign(layoutRow(withGap, moved.row));
+    }
+    gestureId.current = null;
     if (snap && snap !== cur.current && strip(snap) !== strip(cur.current!)) {
       past.current.push(snap);
       future.current = [];
@@ -123,13 +148,49 @@ export default function Editor({ id }: { id: string }) {
 
   // ---------------------------------------------------------------- element actions
   const addElement = (el: DesignElement) => {
-    commit({ ...cur.current!, elements: [...cur.current!.elements, el] });
+    let d = cur.current!;
+    if (el.row) d = pinGap(d, el.row);
+    let next: Design = { ...d, elements: [...d.elements, el] };
+    if (el.row) next = layoutRow(next, el.row);
+    commit(next);
     setSelectedId(el.id);
   };
   const removeSelected = () => {
     if (!selectedId) return;
-    commit({ ...cur.current!, elements: cur.current!.elements.filter((e) => e.id !== selectedId) });
+    const el = cur.current!.elements.find((e) => e.id === selectedId);
+    let d = cur.current!;
+    if (el?.row) d = pinGap(d, el.row);
+    let next: Design = { ...d, elements: d.elements.filter((e) => e.id !== selectedId) };
+    if (el?.row) next = layoutRow(next, el.row);
+    commit(next);
     setSelectedId(null);
+  };
+
+  // ---------------------------------------------------------------- drag & drop onto the page
+  const [dropError, setDropError] = useState<string | null>(null);
+  const placeAt = (el: DesignElement, at: { x: number; y: number }) => {
+    const d = cur.current!;
+    const x = Math.round(Math.max(0, Math.min(d.width - el.w, at.x - el.w / 2)));
+    const y = Math.round(Math.max(0, Math.min(d.height - el.h, at.y - el.h / 2)));
+    addElement({ ...el, id: newId(), x, y, row: undefined } as DesignElement);
+  };
+  const onDrop = async (payload: DropPayload | null, files: File[], at: { x: number; y: number }) => {
+    const d = cur.current!;
+    if (payload?.kind === "element") return placeAt(payload.el, at);
+    if (payload?.kind === "image") {
+      const size = payload.w && payload.h ? { w: payload.w, h: payload.h } : await naturalSize(payload.src);
+      return placeAt(imageElement({ src: payload.src, name: payload.name, ...size }, d.width, d.height), at);
+    }
+    setDropError(null);
+    for (const [i, f] of files.entries()) {
+      try {
+        const asset = await uploadImage(f);
+        const size = await naturalSize(asset.url);
+        placeAt(imageElement({ src: asset.url, name: asset.name, ...size }, d.width, d.height), { x: at.x + i * 40, y: at.y + i * 40 });
+      } catch (e) {
+        setDropError(`${f.name}: ${e instanceof Error ? e.message : "upload failed"}`);
+      }
+    }
   };
   const duplicate = (src?: DesignElement) => {
     const el = src ?? cur.current!.elements.find((e) => e.id === selectedId);
@@ -335,6 +396,12 @@ export default function Editor({ id }: { id: string }) {
         />
         <span className={`text-xs ${saveState === "error" || saveState === "conflict" ? "text-red-300" : "text-navy-100"}`}>{saveLabel}</span>
         <div className="ml-2 flex items-center gap-1">
+          <button className={`rounded px-2 py-1 text-xs hover:bg-white/10 ${leftOpen ? "bg-white/15" : ""}`} onClick={() => setLeftOpen((v) => !v)} title="Show/hide the Add · Images · Layers panel">
+            ◧ Panel
+          </button>
+          <button className={`rounded px-2 py-1 text-xs hover:bg-white/10 ${rightOpen ? "bg-white/15" : ""}`} onClick={() => setRightOpen((v) => !v)} title="Show/hide the properties panel">
+            Properties ◨
+          </button>
           <button className="rounded px-2 py-1 text-sm hover:bg-white/10 disabled:opacity-30" disabled={!past.current.length} onClick={undo} title="Undo (Ctrl+Z)">
             ↶
           </button>
@@ -376,6 +443,12 @@ export default function Editor({ id }: { id: string }) {
         </div>
       </header>
 
+      {dropError && (
+        <div className="flex items-center justify-between bg-red-50 px-4 py-2 text-sm text-red-800">
+          {dropError}
+          <button onClick={() => setDropError(null)}>✕</button>
+        </div>
+      )}
       {(saveState === "conflict" || saveState === "error") && (
         <div className="flex items-center gap-3 bg-red-50 px-4 py-2 text-sm text-red-800">
           <span>{saveError}</span>
@@ -421,6 +494,22 @@ export default function Editor({ id }: { id: string }) {
             Clear
           </button>
           <span className="mx-2 h-5 w-px bg-slate-200" />
+          <span className="text-xs text-slate-500" title="Aligns only the line(s) the cursor is on">This line:</span>
+          {(
+            [
+              ["justifyLeft", "Left", "M3 5h14M3 9h9M3 13h14M3 17h9"],
+              ["justifyCenter", "Centre", "M3 5h14M6 9h8M3 13h14M6 17h8"],
+              ["justifyRight", "Right", "M3 5h14M8 9h9M3 13h14M8 17h9"],
+              ["justifyFull", "Justify", "M3 5h14M3 9h14M3 13h14M3 17h14"],
+            ] as const
+          ).map(([cmd, label, path]) => (
+            <button key={cmd} className="grid h-7 w-8 place-items-center rounded hover:bg-slate-100" onClick={() => exec(cmd)} title={`${label}-align this line`}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d={path} />
+              </svg>
+            </button>
+          ))}
+          <span className="mx-2 h-5 w-px bg-slate-200" />
           <span className="text-xs text-slate-500">Insert field:</span>
           {["Name", "Department", "Position", "Title", "Date"].map((f) => (
             <button key={f} className="rounded-full border border-gold-400 px-2 py-0.5 text-xs text-gold-600 hover:bg-gold-100" onClick={() => exec("insertText", `{${f}}`)}>
@@ -443,7 +532,7 @@ export default function Editor({ id }: { id: string }) {
       )}
 
       <div className="flex min-h-0 flex-1">
-        <SidePanel
+        {leftOpen && <SidePanel
           design={design}
           selectedId={selectedId}
           onAdd={addElement}
@@ -451,7 +540,7 @@ export default function Editor({ id }: { id: string }) {
           onPatch={(elId, patch) => patchEl(elId, patch)}
           onReorder={(elId, dir) => arrange(elId, dir)}
           onBackground={setBackground}
-        />
+        />}
         <Stage
           design={design}
           zoom={zoom}
@@ -470,9 +559,10 @@ export default function Editor({ id }: { id: string }) {
           onLive={live}
           onGestureStart={gestureStart}
           onGestureEnd={gestureEnd}
+          onDrop={onDrop}
           scrollerRef={scroller}
         />
-        <Inspector
+        {rightOpen && <Inspector
           design={design}
           el={selected}
           fields={fields}
@@ -483,7 +573,11 @@ export default function Editor({ id }: { id: string }) {
           remove={removeSelected}
           startEdit={() => selected && setEditingId(selected.id)}
           openPicker={setPicker}
-        />
+          rows={rowNames(design)}
+          rowGap={selected?.row ? gapOf(design, selected.row) : 0}
+          setRowGap={setRowGap}
+          recentreRow={(r) => commit(layoutRow(pinGap(cur.current!, r), r))}
+        />}
       </div>
 
       {picker && (
